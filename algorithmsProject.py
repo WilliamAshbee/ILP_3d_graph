@@ -2,76 +2,59 @@
 
 #pip install pulp
 from pulp import *
+import numpy as np
 #  
 #      a-b
 #      | |
 #      c-d
 #
-#
-#
-#
+
+verticies = ['a','b','c','d']
+distances = np.array([[0,1,1,1.5],[1,0,1.5,1],[1,1.5,0,1],[1.5,1,1,0]])
 problem = LpProblem('Car Factory', LpMinimize)
 
 
-weights = [1,1,1.5,1.5,1,1]
 edges = []
-for i in range (6):
-    s = 't'+str(i)
-    edges.append((LpVariable(s, cat="Binary"),weights[i]))
-# ab = LpVariable('ab', cat="Binary")
-# ac = LpVariable('ac', cat="Binary")
-# ad = LpVariable('ad', cat="Binary")
-# bc = LpVariable('bc', cat="Binary")
-# bd = LpVariable('bd', cat="Binary")
-# cd = LpVariable('cd', cat="Binary")
-# edges = [(ab,1),(ac,1),(ad,1.5),(bc,1.5),(bd,1),(cd,1)]
+
+inci_dict = {i:[] for i in verticies}
+
+for vi in range(len(verticies)):
+    for vj in range(vi+1,len(verticies)):
+        s = verticies[vi]+str('_')+verticies[vj]
+        var = (LpVariable(s, cat="Binary"),distances[vi,vj])
+        inci_dict[verticies[vi]].append(var)
+        inci_dict[verticies[vj]].append(var)
+        
+        
+        edges.append(var)
+
+assert len(edges)==6
+# # # ab = LpVariable('ab', cat="Binary")
+# # # ac = LpVariable('ac', cat="Binary")
+# # # ad = LpVariable('ad', cat="Binary")
+# # # bc = LpVariable('bc', cat="Binary")
+# # # bd = LpVariable('bd', cat="Binary")
+# # # cd = LpVariable('cd', cat="Binary")
+# # # edges = [(ab,1),(ac,1),(ad,1.5),(bc,1.5),(bd,1),(cd,1)]
 
 #Objective Function
 obj = LpAffineExpression(edges)
-print (obj)
+print ('objective',obj)
 problem+= obj
-#for edge in edges:
-#    problem += edge, 'Objective Function'
-#Constraints
 
 numedges = len(edges)
 
-# e1c = LpAffineExpression([edges[0], edges[1], edges[2]])
-# print('e1c',e1c)
-# e1c = LpConstraint(e=e1c, sense=1, name='e1c', rhs=2)
-# problem += e1c
 
-
-nVert = 4
+nVert = len(verticies)
 assert numedges == nVert*(nVert-1)//2
 
-count = 0
-expl = []
-vc = 1
-for edge in edges:
-    
-    if count%(nVert-1) == 0:
-        expl = []
-        expl.append(edge)
-        
-    elif count%(nVert-1)== (nVert-2):
-        vc+=1
-        expl.append(edge)
-        print(len(expl))
-        assert len(expl)==3
-        ec = LpAffineExpression(expl)
-        ec = LpConstraint(e=ec, sense=1, name='ed_con_'+str(vc), rhs=2)
-        problem += ec
-    else:
-        expl.append(edge)
-    count+=1   
 
-print(vc)
-assert vc == 4
-# problem += ab + ac + ad >= 2
-# problem += ab + bc + bd >= 2
-# problem += ac + bc + cd >= 2
-# problem += ad + bd + cd >= 2 
+for vert in verticies:
+    assert len(inci_dict[verticies[vi]]) == 3
+    ec = LpAffineExpression(inci_dict[vert])
+    ec = LpConstraint(e=ec, sense=1, name='incivert_'+vert, rhs=2)
+    problem+=ec
+        
 
 print("Current Status: ", LpStatus[problem.status])
 
